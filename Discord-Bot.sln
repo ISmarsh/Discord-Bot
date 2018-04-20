@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26430.16
+VisualStudioVersion = 15.0.27130.2010
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Smarsh-Bot.Console", "Smarsh-Bot.Console\Smarsh-Bot.Console.csproj", "{F769D53D-F8AB-4C37-9183-AFBFC9773FAC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Discord-Bot.Core", "Discord-Bot.Core\Discord-Bot.Core.csproj", "{AE3F1918-91E2-4024-9CA2-16A07438A364}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,8 +17,15 @@ Global
 		{F769D53D-F8AB-4C37-9183-AFBFC9773FAC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F769D53D-F8AB-4C37-9183-AFBFC9773FAC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F769D53D-F8AB-4C37-9183-AFBFC9773FAC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AE3F1918-91E2-4024-9CA2-16A07438A364}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AE3F1918-91E2-4024-9CA2-16A07438A364}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AE3F1918-91E2-4024-9CA2-16A07438A364}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AE3F1918-91E2-4024-9CA2-16A07438A364}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {A926E32E-ADA0-4867-A495-AA404DB86E81}
 	EndGlobalSection
 EndGlobal
