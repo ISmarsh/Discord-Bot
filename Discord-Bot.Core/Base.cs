@@ -10,7 +10,7 @@ using static System.Text.RegularExpressions.RegexOptions;
 
 namespace Discord_Bot
 {
-    public abstract class Program
+    public abstract class Base
     {
         protected const RegexOptions RegexOptions = IgnoreCase | Compiled;
         protected static readonly Random Random = new Random();
@@ -30,12 +30,17 @@ namespace Discord_Bot
 
             Client.Log += Log;
             Client.MessageReceived += MessageReceived;
+            Client.UserJoined += UserJoined;
+            Client.UserLeft += UserLeft;
 
             await Client.LoginAsync(TokenType.Bot, ConfigurationManager.AppSettings["Token"]);
             await Client.StartAsync();
 
             await Task.Delay(-1);
         }
+
+        protected virtual Task UserJoined(SocketGuildUser user) => Task.CompletedTask;
+        protected virtual Task UserLeft(SocketGuildUser socketGuildUser) => Task.CompletedTask;
 
         private static Task Log(LogMessage msg) => Task.Factory.StartNew(() => Console.WriteLine(msg.ToString()));
 
@@ -45,23 +50,13 @@ namespace Discord_Bot
 
             if (prefixMatch.Success == false) return;
 
-            var command = new Command(
-                message.Content.Substring(prefixMatch.Value.Length),
-                GetGuildUser(message.Channel.Id, message.Author.Id)?.Nickname ?? message.Author.Username
-            );
+            var command = new Command(prefixMatch.Value, message);
 
             await message.Channel.SendMessageAsync(
                 Handlers.Select(h => h.Value(command)).SkipWhile(r => r == null).FirstOrDefault() ??
-                $"I'm afraid I don't understand, {command.Author}."
+                $"I'm afraid I don't understand, {command.MentionAuthor}."
             );
         }
-
-        private SocketGuildUser GetGuildUser(ulong channelId, ulong userId) => Client
-            .Guilds.Select(g => g
-                .Channels.SingleOrDefault(c => c.Id == channelId)?
-                .Users.SingleOrDefault(u => u.Id == userId)
-            ).SkipWhile(u => u == null).FirstOrDefault()
-        ;
 
         protected string Help(Command command) =>
             Regex.IsMatch(command.Text, "help", RegexOptions) == false ? null :
@@ -72,14 +67,14 @@ namespace Discord_Bot
 
         protected static string Roll(Command command)
         {
-            var match = Regex.Match(command.Text, "^roll (?<num>\\d+)?", RegexOptions);
+            var match = Regex.Match(command.Text, "^roll(?<num> \\d+)?", RegexOptions);
 
             if (match.Success == false) return null;
 
             var numMatch = match.Groups["num"];
             var num = numMatch.Success ? int.Parse(numMatch.Value) : 20;
 
-            return $"{command.Author}, you rolled a {Random.Next(num) + 1} (out of a possible {num}).";
+            return $"{command.MentionAuthor}, you rolled a {Random.Next(num) + 1} (out of a possible {num}).";
         }
 
         protected static string Choose(Command command)

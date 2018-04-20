@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Smarsh-Bot.Console", "Smars
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Discord-Bot.Core", "Discord-Bot.Core\Discord-Bot.Core.csproj", "{AE3F1918-91E2-4024-9CA2-16A07438A364}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sakura-Bot.Console", "Sakura-Bot.Console\Sakura-Bot.Console.csproj", "{99246CA2-6227-468C-B28D-287BC577710C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{AE3F1918-91E2-4024-9CA2-16A07438A364}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AE3F1918-91E2-4024-9CA2-16A07438A364}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AE3F1918-91E2-4024-9CA2-16A07438A364}.Release|Any CPU.Build.0 = Release|Any CPU
+		{99246CA2-6227-468C-B28D-287BC577710C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{99246CA2-6227-468C-B28D-287BC577710C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{99246CA2-6227-468C-B28D-287BC577710C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{99246CA2-6227-468C-B28D-287BC577710C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
