@@ -18,112 +18,63 @@ namespace Smarsh_Bot
         protected static readonly string[] StandardTimeZones = { "Pacific Time", "Central Time", "Eastern Time" };
         protected static readonly ReadOnlyCollection<TimeZoneInfo> SystemTimeZones = TimeZoneInfo.GetSystemTimeZones();
 
-        protected override string Prefix => ">";
-        protected override Dictionary<string, Func<Command, string>> GetHandlers() => new Dictionary<string, Func<Command, string>>
-        {
-            { @"""help"" - display all commands.", Help },
-            { @"""ping"" - Test the bot's resposiveness.", Ping },
-            { @"""roll (number)?"" - Roll between 1 and a number, defaulting to 20.", Roll },
-            { @"""should (I|we|...) (verb)?: <1>, ...,( or)? <N>"" - Randomly choose one of many options.", Choose },
-            { @"""time(zones)?( (number) (hours|minutes) from)? now (with <1>, ..., <N>)?"" - Display time in different time zones.", TimeZones },
-            { @"""what time is it( in <1>, ..., <N>)?"" - Display the current times either in America or a specific list of time zones.", WhatTime }
-        };
+        protected override string Prefix { get; } = ">";
 
         public static void Main(string[] args) => Task.WaitAll(new Program().RunAsync());
 
-        protected static string TimeZones(Command command)
+        [Command(
+            "time(zones)?(?<offset> (?<c>\\d+) (?<period>hours?|minutes?) from)? now(?: with (?<ex>.+))?",
+            "time(zones)?( (number) (hours|minutes) from)? now (with <1>, ..., <N>)?", 
+            "Display time in different time zones."
+        )]
+        public static string TimeZones(Command command)
         {
-            var match = Regex.Match(command.Text, 
-                "^time(zones)?(?<offset> (?<c>\\d+) (?<period>hours?|minutes?) from)? now(?: with (?<ex>.+))?", 
-                RegexOptions
-            );
+            var baseTime = DateTime.UtcNow;
 
-            if (match.Success == false) return null;
-
-            var now = DateTime.UtcNow;
-
-            if (match.Groups["offset"].Success)
+            if (command["offset"].Success)
             {
-                var c = int.Parse(match.Groups["c"].Value);
-                var period = match.Groups["period"].Value;
+                var c = int.Parse(command["c"].Value);
+                var period = command["period"].Value.ToLower();
 
                 if (Regex.Match(period, "hours?").Success)
-                    now = now.AddHours(c);
+                    baseTime = baseTime.AddHours(c);
                 else if (Regex.Match(period, "minutes?").Success)
-                    now = now.AddMinutes(c);
+                    baseTime = baseTime.AddMinutes(c);
             }
 
-            var extraMatch = match.Groups["ex"];
+            var extraMatch = command["ex"];
             var extraZones = extraMatch.Success ? extraMatch.Value.Split(',').ToList() : Enumerable.Empty<string>();
+            var timeZones = StandardTimeZones.Union(extraZones).Select(s => s.Trim());
 
-            var messages = new List<string>();
-            foreach (var timeZoneInfo in StandardTimeZones
-                .Union(extraZones).Select(s => s.Trim())
-                .ToDictionary(s => s, s => SystemTimeZones.FirstOrDefault(z => 1 == 0
-                ||  Regex.IsMatch(z.Id, s, RegexOptions)
-                ||  Regex.IsMatch(z.StandardName, s, RegexOptions)
-                ||  Regex.IsMatch(z.DisplayName, s, RegexOptions)
-                )))
-            {
-                string label;
-                string display;
-                if (timeZoneInfo.Value == null)
-                {
-                    label = timeZoneInfo.Key;
-                    display = "Not Found";
-                }
-                else
-                {
-                    var offset = timeZoneInfo.Value.BaseUtcOffset;
-
-                    if (timeZoneInfo.Value.IsDaylightSavingTime(now))
-                    {
-                        offset = offset.Add(TimeSpan.FromHours(1));
-                        label = timeZoneInfo.Value.DaylightName;
-                    }
-                    else
-                    {
-                        label = timeZoneInfo.Value.StandardName;
-                    }
-
-                    display = now.Add(offset).ToString("h:mm:ss tt");
-                }
-
-                messages.Add($"{label}: {display}");
-            }
-
-            return string.Join(Environment.NewLine, messages);
+            return string.Join(Environment.NewLine, GetTimes(timeZones, baseTime));
         }
 
-        protected static string WhatTime(Command command)
+        [Command(
+            "what time is it(?<specific> in (?<ex>.+))?", "what time is it( in <1>, ..., <N>)?", 
+            "Display the current times either in America or a specific list of time zones."
+        )]
+        public static string WhatTime(Command command)
         {
-            var match = Regex.Match(command.Text, 
-                "^what time is it(?<specific> in (?<ex>.+))?", 
-                RegexOptions
-            );
-
-            if (match.Success == false) return null;
-
-            var now = DateTime.UtcNow;
-            
             IEnumerable<string> timeZones;
-
-            if (match.Groups["specific"].Success)
+            if (command["specific"].Success)
             {
-                timeZones = match.Groups["ex"]
-                    .Value.Split(',').Select(s => s.Trim()).ToList();
+                timeZones = command["ex"].Value.Split(',').Select(s => s.Trim()).ToList();
             }
             else
             {
                 timeZones = StandardTimeZones;
             }
 
-            var messages = new List<string>();
+            return string.Join(Environment.NewLine, GetTimes(timeZones, DateTime.UtcNow));
+        }
+
+        private static IEnumerable<string> GetTimes(IEnumerable<string> timeZones, DateTime baseTime)
+        {
             foreach (var timeZoneInfo in timeZones
                 .ToDictionary(s => s, s => SystemTimeZones.FirstOrDefault(z => 1 == 0
-                ||  Regex.IsMatch(z.Id, s, RegexOptions)
-                ||  Regex.IsMatch(z.StandardName, s, RegexOptions)
-                ||  Regex.IsMatch(z.DisplayName, s, RegexOptions)
+                || string.Equals(z.Id, s, StringComparison.InvariantCultureIgnoreCase)
+                || string.Equals(z.StandardName, s, StringComparison.InvariantCultureIgnoreCase)
+                || string.Equals(z.DisplayName, s, StringComparison.InvariantCultureIgnoreCase)
                 )))
             {
                 string label;
@@ -137,7 +88,7 @@ namespace Smarsh_Bot
                 {
                     var offset = timeZoneInfo.Value.BaseUtcOffset;
 
-                    if (timeZoneInfo.Value.IsDaylightSavingTime(now))
+                    if (timeZoneInfo.Value.IsDaylightSavingTime(baseTime))
                     {
                         offset = offset.Add(TimeSpan.FromHours(1));
                         label = timeZoneInfo.Value.DaylightName;
@@ -147,13 +98,11 @@ namespace Smarsh_Bot
                         label = timeZoneInfo.Value.StandardName;
                     }
 
-                    display = now.Add(offset).ToString("h:mm:ss tt");
+                    display = baseTime.Add(offset).ToString("h:mm:ss tt");
                 }
 
-                messages.Add($"{label}: {display}");
+                yield return $"{label}: {display}";
             }
-
-            return string.Join(Environment.NewLine, messages);
         }
     }
 }

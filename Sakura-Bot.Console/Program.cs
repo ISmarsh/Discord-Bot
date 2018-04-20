@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Discord.WebSocket;
-using Discord_Bot;
 using static Discord.MentionUtils;
 
 namespace Sakura_Bot
@@ -13,15 +11,7 @@ namespace Sakura_Bot
     /// </summary>
     public class Program : Discord_Bot.Base
     {
-        protected override string Prefix => ">";
-        protected override Dictionary<string, Func<Command, string>> GetHandlers() => new Dictionary<string, Func<Command, string>>
-        {
-            { @"""help"" - display all commands.", Help },
-            { @"""ping"" - Test the bot's resposiveness.", Ping },
-            { @"""roll (number)?"" - Roll between 1 and a number, defaulting to 20.", Roll },
-            { @"""should (I|we|...) (verb)?: <1>, ...,( or)? <N>"" - Randomly choose one of many options.", Choose },
-            //{ @"",  },
-        };
+        protected override string Prefix { get; } = ">";
 
         public static void Main(string[] args) => Task.WaitAll(new Program().RunAsync());
 
