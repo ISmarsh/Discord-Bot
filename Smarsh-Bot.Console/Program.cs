@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Discord_Bot;
+using static System.Text.RegularExpressions.RegexOptions;
 
 namespace Smarsh_Bot
 {
@@ -72,9 +73,9 @@ namespace Smarsh_Bot
         {
             foreach (var timeZoneInfo in timeZones
                 .ToDictionary(s => s, s => SystemTimeZones.FirstOrDefault(z => 1 == 0
-                || string.Equals(z.Id, s, StringComparison.InvariantCultureIgnoreCase)
-                || string.Equals(z.StandardName, s, StringComparison.InvariantCultureIgnoreCase)
-                || string.Equals(z.DisplayName, s, StringComparison.InvariantCultureIgnoreCase)
+                || Regex.IsMatch(z.Id, s, IgnoreCase | Compiled)
+                || Regex.IsMatch(z.StandardName, s, IgnoreCase | Compiled)
+                || Regex.IsMatch(z.DisplayName, s, IgnoreCase | Compiled)
                 )))
             {
                 string label;
