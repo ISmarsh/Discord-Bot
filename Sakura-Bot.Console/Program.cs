@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Discord.WebSocket;
+using Discord_Bot;
 using static Discord.MentionUtils;
 
 namespace Sakura_Bot
@@ -11,7 +12,7 @@ namespace Sakura_Bot
     /// </summary>
     public class Program : Discord_Bot.Base
     {
-        protected override string Prefix { get; } = ">";
+        protected override string Prefix { get; } = ";";
 
         public static void Main(string[] args) => Task.WaitAll(new Program().RunAsync());
 
@@ -33,5 +34,20 @@ namespace Sakura_Bot
 
             await general.SendMessageAsync($"Thanks for stopping by {MentionUser(user.Id)}!");
         }
+
+        protected override string NotFoundMessage(SocketMessage message) =>
+            $"Fuggedaboutit, {MentionUser(message.Author.Id)}.";
+
+        [Command(@"badda\w*", "badda", "")]
+        public static string Badda(Command command) => $"{command.MentionAuthor} badda WHAT";
+
+        [Command("badda ?bing!?", "baddabing", "")]
+        public static string BaddaBing(Command command) => $"{command.MentionAuthor} badda BOOM!";
+
+        [Command("badda ?boom!?", "baddaboom", "")]
+        public static string BaddaBoom(Command command) => $"{command.MentionAuthor} do it in the right order you klutz";
+
+        [Command("honk!?", "honk", "")]
+        public static string Honk(Command command) => $"{command.MentionAuthor} HEY IM WAHLKIN' OVA' HERE!";
     }
 }

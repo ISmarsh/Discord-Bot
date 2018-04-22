@@ -85,24 +85,31 @@ namespace Discord_Bot
 
                     return match.Success ? h.Delegate(new Command(message, match)) : null;
                 }).FirstOrDefault(s => s != null) ??
-                $"I'm afraid I don't understand, {MentionUser(message.Author.Id)}."
+                NotFoundMessage(message)
             );
         }
 
+        protected virtual string NotFoundMessage(SocketMessage message) => 
+            $"I'm afraid I don't understand, {MentionUser(message.Author.Id)}.";
+
         [Command("help", "help", "Display all commands.")]
         public static string Help(Command command) => string.Join(Environment.NewLine, Handlers
+            .Where(x => x.Command.Description.Length > 0)
             .Select(x => $@"""{x.Command.Hint}"" - {x.Command.Description}")
         );
 
         [Command("ping!?", "ping", "Test the bot's resposiveness.")]
         public static string Ping(Command command) => $"{command.MentionAuthor} Pong!";
 
-        [Command("roll(?<num> \\d+)?", "roll (#)?", "Roll between 1 and a number, defaulting to 20.")]
+        [Command("roll(?<num> [1-9]\\d*)?", "roll (#)?", "Roll between 1 and a number, defaulting to 20.")]
         public static string Roll(Command command)
         {
             var num = command["num"].Success ? int.Parse(command["num"].Value) : 20;
 
-            return $"{command.MentionAuthor}, you rolled a {Random.Next(num) + 1} (out of a possible {num}).";
+            var result = Random.Next(num) + 1;
+            var display = result.ToString("N0") + (result == 69 ? " (nice)" : "");
+
+            return $"{command.MentionAuthor}, you rolled a {display} out of a possible {num:N0}.";
         }
 
         [Command(
