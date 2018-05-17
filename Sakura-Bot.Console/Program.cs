@@ -12,6 +12,11 @@ namespace Sakura_Bot
     /// </summary>
     public class Program : Discord_Bot.Base
     {
+        static Program()
+        {
+            StandardTimeZones = StandardTimeZones.Concat(new[] { "GMT", "Taipei", "AUS Eastern"}).ToArray();
+        }
+
         protected override string Prefix { get; } = ";";
 
         public static void Main(string[] args) => Task.WaitAll(new Program().RunAsync());
@@ -32,13 +37,13 @@ namespace Sakura_Bot
         {
             var general = user.Guild.TextChannels.FirstOrDefault(c => c.Name == "general");
 
-            await general.SendMessageAsync($"Thanks for stopping by {MentionUser(user.Id)}!");
+            await general.SendMessageAsync($"Thanks for stopping by {user.Nickname ?? user.Username}!");
         }
 
         protected override string NotFoundMessage(SocketMessage message) =>
             $"Fuggedaboutit, {MentionUser(message.Author.Id)}.";
 
-        [Command(@"badda\w*", "badda", "")]
+        [Command(@"badda\s*", "badda", "")]
         public static string Badda(Command command) => $"{command.MentionAuthor} badda WHAT";
 
         [Command("badda ?bing!?", "baddabing", "")]
