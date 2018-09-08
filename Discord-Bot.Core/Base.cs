@@ -15,7 +15,7 @@ namespace Discord_Bot
 {
     public abstract class Base
     {
-        protected static string[] StandardTimeZones = { "Pacific Time", "Central Time", "Eastern Time" };
+        protected static string[] StandardTimeZones = { "Pacific Time", "Mountain Time", "Central Time", "Eastern Time" };
         protected static readonly ReadOnlyCollection<TimeZoneInfo> SystemTimeZones = TimeZoneInfo.GetSystemTimeZones();
         protected static readonly Random Random = new Random();
 
@@ -117,7 +117,7 @@ namespace Discord_Bot
         }
 
         [Command(
-            "should (?:I|we|(?<other>\\S+))(?<verb> .*?)?: ?(?<options>.+?(?:,?(?: or)? .+?)*)\\??",
+            "should (I|we|(?<other>\\S+))(?<verb> .*?)?: ?(?<options>.+?(,?( or)? .+?)*)\\??",
             "should (I|we|...) (verb)?: <1>, ...,( or)? <N>", "Randomly choose one of many options."
         )]
         public static string Choose(Command command)
@@ -145,8 +145,8 @@ namespace Discord_Bot
         }
 
         [Command(
-            "time(zones)?(?<offset> (?<c>\\d+) (?<period>hours?|minutes?) from)? now(?: with (?<ex>.+))?",
-            "time(zones)?( (number) (hours|minutes) from)? now (with <1>, ..., <N>)?",
+            "time(zones)?((?<offset> (?<c>\\d+) (?<period>months?|days?|hours?|minutes?))+ from now)?( with (?<ex>.+))?",
+            "time(zones)?(( (number) (months|days|hours|minutes))+ from now)? (with <1>, ..., <N>)?",
             "Display time in different time zones."
         )]
         public static string TimeZones(Command command)
@@ -155,20 +155,27 @@ namespace Discord_Bot
 
             if (command["offset"].Success)
             {
-                var c = int.Parse(command["c"].Value);
-                var period = command["period"].Value.ToLower();
+                for (var i = 0; i < command["offset"].Captures.Count; i++)
+                {
+                    var c = int.Parse(command["c"].Captures[i].Value);
+                    var period = command["period"].Captures[i].Value.ToLower();
 
-                if (Regex.Match(period, "hours?").Success)
-                    baseTime = baseTime.AddHours(c);
-                else if (Regex.Match(period, "minutes?").Success)
-                    baseTime = baseTime.AddMinutes(c);
+                    if (Regex.Match(period, "months?").Success)
+                        baseTime = baseTime.AddMonths(c);
+                    else if (Regex.Match(period, "days?").Success)
+                        baseTime += TimeSpan.FromDays(c);
+                    else if (Regex.Match(period, "hours?").Success)
+                        baseTime += TimeSpan.FromHours(c);
+                    else if (Regex.Match(period, "minutes?").Success)
+                        baseTime += TimeSpan.FromMinutes(c);
+                }
             }
 
             var extraMatch = command["ex"];
             var extraZones = extraMatch.Success ? extraMatch.Value.Split(',').ToList() : Enumerable.Empty<string>();
             var timeZones = StandardTimeZones.Union(extraZones).Select(s => s.Trim());
 
-            return string.Join(Environment.NewLine, GetTimes(timeZones, baseTime));
+            return GetTimes(timeZones, baseTime, displayDate: baseTime > DateTime.UtcNow.AddDays(1));
         }
 
         [Command(
@@ -187,11 +194,14 @@ namespace Discord_Bot
                 timeZones = StandardTimeZones;
             }
 
-            return string.Join(Environment.NewLine, GetTimes(timeZones, DateTime.UtcNow));
+            return GetTimes(timeZones, DateTime.UtcNow);
         }
 
-        private static IEnumerable<string> GetTimes(IEnumerable<string> timeZones, DateTime baseTime)
+        private static string GetTimes(
+            IEnumerable<string> timeZones, DateTime baseTime, bool displayDate = false)
         {
+            var times = new Dictionary<string, DateTime?>();
+
             foreach (var timeZoneInfo in timeZones
                 .ToDictionary(s => s, s => SystemTimeZones.FirstOrDefault(z => 1 == 0
                 || Regex.IsMatch(z.Id, s, IgnoreCase | Compiled)
@@ -200,11 +210,11 @@ namespace Discord_Bot
                 )))
             {
                 string label;
-                string display;
+                DateTime? dateTime;
                 if (timeZoneInfo.Value == null)
                 {
                     label = timeZoneInfo.Key;
-                    display = "Not Found";
+                    dateTime = null;
                 }
                 else
                 {
@@ -212,7 +222,7 @@ namespace Discord_Bot
 
                     if (timeZoneInfo.Value.IsDaylightSavingTime(baseTime))
                     {
-                        offset = offset.Add(TimeSpan.FromHours(1));
+                        offset += TimeSpan.FromHours(1);
                         label = timeZoneInfo.Value.DaylightName;
                     }
                     else
@@ -220,11 +230,26 @@ namespace Discord_Bot
                         label = timeZoneInfo.Value.StandardName;
                     }
 
-                    display = baseTime.Add(offset).ToString("h:mm:ss tt");
+                    dateTime = baseTime.Add(offset);
                 }
 
-                yield return $"{label}: {display}";
+                if (times.ContainsKey(label)) continue;
+
+                times.Add(label, dateTime);
             }
+
+            var max = times.Max(p => p.Key.Length);
+
+            var format = "hh:mm tt";
+
+            if (displayDate) format = "MM/dd/yy " + format;
+
+            return string.Concat(
+                "```", 
+                string.Join(Environment.NewLine, times.OrderBy(p => p.Value).Select(p =>
+                    $"{p.Key.PadRight(max)} : {p.Value?.ToString(format) ?? "Not Found".PadLeft(format.Length)}")),
+                "```"
+            );
         }
     }
 }

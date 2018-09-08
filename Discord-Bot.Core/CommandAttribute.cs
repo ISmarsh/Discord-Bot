@@ -14,7 +14,7 @@ namespace Discord_Bot
 
         public CommandAttribute([RegexPattern] string pattern, string hint, string description)
         {
-            Pattern = new Regex($"^{pattern}$", IgnoreCase | Compiled);
+            Pattern = new Regex($"^{pattern}$", IgnoreCase | Compiled | ExplicitCapture);
             Hint = hint;
             Description = description;
         }
