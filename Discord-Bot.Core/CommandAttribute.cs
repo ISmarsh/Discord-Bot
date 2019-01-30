@@ -11,6 +11,7 @@ namespace Discord_Bot
         public Regex Pattern { get; }
         public string Hint { get; }
         public string Description { get; }
+        public bool OutputFixedWidth { get; set; }
 
         public CommandAttribute([RegexPattern] string pattern, string hint, string description)
         {

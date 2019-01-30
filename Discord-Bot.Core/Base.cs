@@ -15,7 +15,7 @@ namespace Discord_Bot
 {
     public abstract class Base
     {
-        protected static string[] StandardTimeZones = { "Pacific Time", "Mountain Time", "Central Time", "Eastern Time" };
+        protected static string[] StandardTimeZones = { "Pacific Time", "Central Time", "Eastern Time" };
         protected static readonly ReadOnlyCollection<TimeZoneInfo> SystemTimeZones = TimeZoneInfo.GetSystemTimeZones();
         protected static readonly Random Random = new Random();
 
@@ -87,7 +87,17 @@ namespace Discord_Bot
                 {
                     var match = h.Command.Pattern.Match(commandText);
 
-                    return match.Success ? h.Delegate(new Command(message, match)) : null;
+                    if (match.Success == false) return null;
+
+                    var result = h.Delegate(new Command(message, match));
+
+                    if (h.Command.OutputFixedWidth && result != null)
+                    {
+                        result = $"```{result}```";
+                    }
+
+                    return result;
+
                 }).FirstOrDefault(s => s != null) ??
                 NotFoundMessage(message)
             );
@@ -144,10 +154,12 @@ namespace Discord_Bot
             return $"I think that {subject} should {verb}{choice}.".Replace(" my", " your");
         }
 
+        #region Time Commands/Utilities
         [Command(
             "time(zones)?((?<offset> (?<c>\\d+) (?<period>months?|days?|hours?|minutes?))+ from now)?( with (?<ex>.+))?",
             "time(zones)?(( (number) (months|days|hours|minutes))+ from now)? (with <1>, ..., <N>)?",
-            "Display time in different time zones."
+            "Display time in different time zones.",
+            OutputFixedWidth = true
         )]
         public static string TimeZones(Command command)
         {
@@ -180,7 +192,8 @@ namespace Discord_Bot
 
         [Command(
             "what time is it(?<specific> in (?<ex>.+))?", "what time is it( in <1>, ..., <N>)?",
-            "Display the current times either in America or a specific list of time zones."
+            "Display the current times either in America or a specific list of time zones.",
+            OutputFixedWidth = true
         )]
         public static string WhatTime(Command command)
         {
@@ -242,14 +255,11 @@ namespace Discord_Bot
 
             var format = "hh:mm tt";
 
-            if (displayDate) format = "MM/dd/yy " + format;
+            if (displayDate) format = "MM/dd/yy " + format + " (ddd)";
 
-            return string.Concat(
-                "```", 
-                string.Join(Environment.NewLine, times.OrderBy(p => p.Value).Select(p =>
-                    $"{p.Key.PadRight(max)} : {p.Value?.ToString(format) ?? "Not Found".PadLeft(format.Length)}")),
-                "```"
-            );
+            return string.Join(Environment.NewLine, times.OrderBy(p => p.Value).Select(p =>
+                $"{p.Key.PadRight(max)} : {p.Value?.ToString(format) ?? "Not Found".PadLeft(format.Length)}"));
         }
+        #endregion
     }
 }
