@@ -23,7 +23,7 @@ namespace Discord_Bot
         private Regex PrefixRegex => new Regex($"^{Prefix} ?");
 
         protected DiscordSocketClient Client;
-        protected static List<(CommandAttribute Command, Func<Command, string> Delegate)> Handlers;
+        protected static List<(CommandAttribute Command, Delegate Delegate, Type ReturnType)> Handlers;
 
         protected Base()
         {
@@ -43,14 +43,29 @@ namespace Discord_Bot
                     let parameters = method.GetParameters()
                     where 1==1
                     && method.IsStatic 
-                    && method.ReturnParameter?.ParameterType == typeof(string)
+                    && new[]{ typeof(string), typeof(string[]) }.Contains(method.ReturnParameter?.ParameterType)
                     && parameters.Length == 1 && parameters[0].ParameterType == typeof(Command)
                     select method
                 );
             }
 
             Handlers = methods.SelectMany(m => m.GetCustomAttributes<CommandAttribute>()
-                .Select(c => (Command: c, Delegate: (Func<Command, string>) m.CreateDelegate(typeof(Func<Command, string>))))
+                .Select(c =>
+                {
+                    Delegate @delegate;
+                    var returnType = m.ReturnParameter.ParameterType;
+
+                    if (returnType == typeof(string[]))
+                    {
+                        @delegate = m.CreateDelegate(typeof(Func<Command, string[]>));
+                    }
+                    else
+                    {
+                        @delegate = m.CreateDelegate(typeof(Func<Command, string>));
+                    }
+
+                    return (Command: c, Delegate: @delegate, ReturnType: returnType);
+                })
             ).ToList();
         }
 
@@ -82,25 +97,27 @@ namespace Discord_Bot
 
             var commandText = message.Content.Substring(prefixMatch.Value.Length).Trim();
 
-            await message.Channel.SendMessageAsync(
-                Handlers.Select(h =>
-                {
-                    var match = h.Command.Pattern.Match(commandText);
+            var responses = Handlers.Select(h =>
+            {
+                var match = h.Command.Pattern.Match(commandText);
 
-                    if (match.Success == false) return null;
+                if (match.Success == false) return null;
 
-                    var result = h.Delegate(new Command(message, match));
+                var command = new Command(message, match);
 
-                    if (h.Command.OutputFixedWidth && result != null)
-                    {
-                        result = $"```{result}```";
-                    }
+                var messagess = h.ReturnType == typeof(string[])
+                    ? ((Func<Command, string[]>) h.Delegate)(command)
+                    : new[] {((Func<Command, string>) h.Delegate)(command)};
 
-                    return result;
+                return messagess.Where(m => m != null)
+                    .Select(m => h.Command.OutputFixedWidth ? $"```{m}```" : m);
 
-                }).FirstOrDefault(s => s != null) ??
-                NotFoundMessage(message)
-            );
+            }).FirstOrDefault(s => s != null);
+
+            foreach (var response in responses ?? new [] { NotFoundMessage(message) })
+            {
+                await message.Channel.SendMessageAsync(response);
+            }
         }
 
         protected virtual string NotFoundMessage(SocketMessage message) => 
