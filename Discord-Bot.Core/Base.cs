@@ -19,14 +19,16 @@ namespace Discord_Bot
         protected static readonly ReadOnlyCollection<TimeZoneInfo> SystemTimeZones = TimeZoneInfo.GetSystemTimeZones();
         protected static readonly Random Random = new Random();
 
-        protected abstract string Prefix { get; }
+        protected static string Prefix;
         private Regex PrefixRegex => new Regex($"^{Prefix} ?");
 
         protected DiscordSocketClient Client;
         protected static List<(CommandAttribute Command, Delegate Delegate, Type ReturnType)> Handlers;
 
-        protected Base()
+        protected Base(string prefix)
         {
+            Prefix = prefix;
+
             var type = GetType();
             var types = new List<Type>();
             do
@@ -42,9 +44,9 @@ namespace Discord_Bot
                     from method in t.GetMethods()
                     let parameters = method.GetParameters()
                     where 1==1
-                    && method.IsStatic 
-                    && new[]{ typeof(string), typeof(string[]) }.Contains(method.ReturnParameter?.ParameterType)
+                    && method.IsStatic
                     && parameters.Length == 1 && parameters[0].ParameterType == typeof(Command)
+                    && new[]{ typeof(string), typeof(string[]) }.Contains(method.ReturnParameter?.ParameterType)
                     select method
                 );
             }
@@ -109,10 +111,10 @@ namespace Discord_Bot
                     ? ((Func<Command, string[]>) h.Delegate)(command)
                     : new[] {((Func<Command, string>) h.Delegate)(command)};
 
-                return messagess.Where(m => m != null)
+                return messagess.Where(m => string.IsNullOrEmpty(m) == false)
                     .Select(m => h.Command.OutputFixedWidth ? $"```{m}```" : m);
 
-            }).FirstOrDefault(s => s != null);
+            }).FirstOrDefault(s => s?.Any() == true);
 
             foreach (var response in responses ?? new [] { NotFoundMessage(message) })
             {
@@ -126,7 +128,7 @@ namespace Discord_Bot
         [Command("help", "help", "Display all commands.")]
         public static string Help(Command command) => string.Join(Environment.NewLine, Handlers
             .Where(x => x.Command.Description.Length > 0)
-            .Select(x => $@"""{x.Command.Hint}"" - {x.Command.Description}")
+            .Select(x => $@"`{Prefix}{x.Command.Hint}` - {x.Command.Description}")
         );
 
         [Command("ping!?", "ping", "Test the bot's resposiveness.")]
@@ -173,18 +175,19 @@ namespace Discord_Bot
 
         #region Time Commands/Utilities
         [Command(
-            "time(zones)?((?<offset> (?<c>\\d+) (?<period>months?|days?|hours?|minutes?))+ from now)?( with (?<ex>.+))?",
-            "time(zones)?(( (number) (months|days|hours|minutes))+ from now)? (with <1>, ..., <N>)?",
+            "times?((?<offset> (?<c>\\d+) (?<period>months?|days?|hours?|minutes?))+ from now)?( with (?<ex>.+))?",
+            "times?(( (number) (months|days|hours|minutes))+ from now)? (with <1>, ..., <N>)?",
             "Display time in different time zones.",
             OutputFixedWidth = true
         )]
         public static string TimeZones(Command command)
         {
             var baseTime = DateTime.UtcNow;
+            var offset = command["offset"];
 
-            if (command["offset"].Success)
+            if (offset.Success)
             {
-                for (var i = 0; i < command["offset"].Captures.Count; i++)
+                for (var i = 0; i < offset.Captures.Count; i++)
                 {
                     var c = int.Parse(command["c"].Captures[i].Value);
                     var period = command["period"].Captures[i].Value.ToLower();
@@ -232,12 +235,7 @@ namespace Discord_Bot
         {
             var times = new Dictionary<string, DateTime?>();
 
-            foreach (var timeZoneInfo in timeZones
-                .ToDictionary(s => s, s => SystemTimeZones.FirstOrDefault(z => 1 == 0
-                || Regex.IsMatch(z.Id, s, IgnoreCase | Compiled)
-                || Regex.IsMatch(z.StandardName, s, IgnoreCase | Compiled)
-                || Regex.IsMatch(z.DisplayName, s, IgnoreCase | Compiled)
-                )))
+            foreach (var timeZoneInfo in timeZones.ToDictionary(s => s, GetTimeZoneInfo))
             {
                 string label;
                 DateTime? dateTime;
@@ -277,6 +275,16 @@ namespace Discord_Bot
             return string.Join(Environment.NewLine, times.OrderBy(p => p.Value).Select(p =>
                 $"{p.Key.PadRight(max)} : {p.Value?.ToString(format) ?? "Not Found".PadLeft(format.Length)}"));
         }
+
+        private static TimeZoneInfo GetTimeZoneInfo(string s)
+        {
+            return SystemTimeZones.FirstOrDefault(z => 1 == 0
+            || Regex.IsMatch(z.Id, s, IgnoreCase | Compiled)
+            || Regex.IsMatch(z.StandardName, s, IgnoreCase | Compiled)
+            || Regex.IsMatch(z.DisplayName, s, IgnoreCase | Compiled)
+            );
+        }
+
         #endregion
     }
 }

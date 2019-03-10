@@ -18,7 +18,7 @@ namespace Sakura_Bot
             StandardTimeZones = StandardTimeZones.Concat(new[] { "Mountain Time", "GMT", "AUS Eastern"}).ToArray();
         }
 
-        protected override string Prefix { get; } = ";";
+        public Program() : base(prefix: ";") { }
 
         public static void Main(string[] args) => Task.WaitAll(new Program().RunAsync());
 

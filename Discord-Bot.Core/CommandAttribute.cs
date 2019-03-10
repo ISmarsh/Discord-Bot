@@ -5,7 +5,7 @@ using static System.Text.RegularExpressions.RegexOptions;
 
 namespace Discord_Bot
 {
-    [AttributeUsage(AttributeTargets.Method)]
+    [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
     public class CommandAttribute : Attribute
     {
         public Regex Pattern { get; }

@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Discord_Bot;
@@ -12,7 +14,7 @@ namespace Bott_Steeltoes.Console
     /// </summary>
     class Program : Discord_Bot.Base
     {
-        protected override string Prefix { get; } = ">";
+        public Program() : base(prefix: ">") { }
 
         public static void Main(string[] args) => Task.WaitAll(new Program().RunAsync());
 
@@ -166,9 +168,9 @@ namespace Bott_Steeltoes.Console
 
         [Command(
             pattern: "reincarnate", hint: "reincarnate", 
-            description: "Roll a random race from Marcus' reincarnate table, then ask Avrae to generate random stats."
+            description: "Roll a random race (and subrace, where applicable) from Marcus' reincarnate table."
         )]
-        public static string[] Reincarnate(Command command)
+        public static string Reincarnate(Command command)
         {
             var roll = Random.Next(Races.Length);
             var race = Races[roll];
@@ -179,11 +181,7 @@ namespace Bott_Steeltoes.Console
                 subrace = subraces[Random.Next(subraces.Length)];
             }
 
-            return new[]
-            {
-                $"Your New Race (**{roll}**): {race}{(subrace != null ? $" ({subrace})" : "")}",
-                "!randchar"
-            };
+            return $"Your New Race (**{roll}**): {race}{(subrace != null ? $" ({subrace})" : "")}";
         }
         private static readonly string[] Races = 
         {
@@ -313,5 +311,114 @@ namespace Bott_Steeltoes.Console
             { "Tortle", new [] { "Desert", "Forest", "Razorback", "Softshell" } },
             { "Warforged", new [] { "Brass", "Bronze", "Gold", "Platinum", "Silver", "Stone" } },
         };
+
+        [Command(
+            "madness( (?<type>short(-term)?|long(-term)?|indefinite|cure))?", "madness (short|long|indefinite|cure)", 
+            "Roll on one of the Madness tables (from the DMG), or learn how madness can be cured."
+        )]
+        public static string Madness(Command command)
+        {
+            string type;
+            if (command["type"].Success)
+            {
+                type = command["type"].Value;
+            }
+            else
+            {
+                var typeRoll = Random.Next(100);
+
+                if (typeRoll == 0) { type = "indefinite"; }
+                else if (typeRoll < 10) { type = "long"; }
+                else { type = "short"; }
+            }
+
+            int roll;
+            string label, effect, duration;
+            switch (type.ToLower())
+            {
+                case "short":
+                {
+                    label = "Short-Term";
+                    duration = $"**{Random.Next(10) + 1}** Minutes";
+                    roll = Random.Next(ShortMadnesses.Length);
+                    effect = ShortMadnesses[roll];
+
+                    break;
+                }
+                case "long":
+                {
+                    label = "Long-Term";
+                    duration = $"**{(Random.Next(10) + 1) * 10}** Hours";
+                    roll = Random.Next(LongMadnesses.Length);
+                    effect = LongMadnesses[roll];
+
+                    break;
+                }
+                case "indefinite":
+                {
+                    label = "Indefinite";
+                    duration = null;
+                    roll = Random.Next(IndefiniteMadnesses.Length);
+                    effect = IndefiniteMadnesses[roll];
+
+                    break;
+                }
+                case "cure": return string.Join(NewLine,
+                    "A *calm emotions* spell can suppress the effects of madness, while a *lesser restoration* spell can rid a character of a short-term or long-term madness.",
+                    "Depending on the source of the madness, *remove curse* or *dispel evil and good* might also prove effective.",
+                    "A *greater restoration* spell or more powerful magic is required to rid a character of indefinite madness."
+                );
+                default: return null;
+            }
+
+            return string.Join(NewLine,
+                $"{command.MentionAuthor} You rolled a **{roll + 1}** for {label} Madness!",
+                $"Effect: {effect}",
+                $"Duration: {duration ?? "**FOREVER**"}"
+            );
+        }
+        private static readonly string[] ShortMadnesses = new List<IEnumerable<string>>
+        {
+            Enumerable.Repeat("The character retreats into his or her mind and becomes paralyzed. The effect ends if the character takes any damage.", 20),
+            Enumerable.Repeat("The character becomes incapacitated and spends the duration screaming, laughing, or weeping.", 10),
+            Enumerable.Repeat("The character becomes frightened and must use his or her action and movement each round to flee from the source of the fear.", 10),
+            Enumerable.Repeat("The character begins babbling and is incapable of normal speech or spellcasting.", 10),
+            Enumerable.Repeat("The character must use his or her action each round to attack the nearest creature.", 10),
+            Enumerable.Repeat("The character experiences vivid hallucinations and has disadvantage on ability checks.", 10),
+            Enumerable.Repeat("The character does whatever anyone tells him or her to do that isn’t obviously self-destructive.", 5),
+            Enumerable.Repeat("The character experiences an overpowering urge to eat something strange such as dirt, slime, or offal.", 5),
+            Enumerable.Repeat("The character is stunned.", 10),
+            Enumerable.Repeat("The character falls unconscious.", 10),
+        }.SelectMany(e => e).ToArray();
+        private static readonly string[] LongMadnesses = new List<IEnumerable<string>>
+        {
+            Enumerable.Repeat("The character feels compelled to repeat a specific activity over and over, such as washing hands, touching things, praying, or counting coins.", 10),
+            Enumerable.Repeat("The character experiences vivid hallucinations and has disadvantage on ability checks.", 10),
+            Enumerable.Repeat("The character suffers extreme paranoia. The character has disadvantage on Wisdom and Charisma checks.", 10),
+            Enumerable.Repeat("The character regards something (usually the source of madness) with intense revulsion, as if affected by the antipathy effect of the antipathy/sympathy spell.", 10),
+            Enumerable.Repeat("The character experiences a powerful delusion. Choose a potion. The character imagines that he or she is under its effects.", 5),
+            Enumerable.Repeat("The character becomes attached to a “lucky charm,” such as a person or an object, and has disadvantage on attack rolls, ability checks, and saving throws while more than 30 feet from it.", 10),
+            Enumerable.Repeat("The character is blinded (25%) or deafened (75%).", 10),
+            Enumerable.Repeat("The character experiences uncontrollable tremors or tics, which impose disadvantage on attack rolls, ability checks, and saving throws that involve Strength or Dexterity.", 10),
+            Enumerable.Repeat("The character suffers from partial amnesia. The character knows who he or she is and retains racial traits and class features, but doesn’t recognize other people or remember anything that happened before the madness took effect.", 10),
+            Enumerable.Repeat("Whenever the character takes damage, he or she must succeed on a DC 15 Wisdom saving throw or be affected as though he or she failed a saving throw against the confusion spell. The confusion effect lasts for 1 minute.", 5),
+            Enumerable.Repeat("The character loses the ability to speak.", 5),
+            Enumerable.Repeat("The character falls unconscious. No amount of jostling or damage can wake the character.", 5),
+        }.SelectMany(e => e).ToArray();
+        private static readonly string[] IndefiniteMadnesses = new List<IEnumerable<string>>
+        {
+            Enumerable.Repeat("“Being drunk keeps me sane.”", 15),
+            Enumerable.Repeat("“I keep whatever I find.”", 10),
+            Enumerable.Repeat("“I try to become more like someone else I know — adopting his or her style of dress, mannerisms, and name.”", 5),
+            Enumerable.Repeat("“I must bend the truth, exaggerate, or outright lie to be interesting to other people.”", 5),
+            Enumerable.Repeat("“Achieving my goal is the only thing of interest to me, and I’ll ignore everything else to pursue it.”", 10),
+            Enumerable.Repeat("“I find it hard to care about anything that goes on around me.”", 5),
+            Enumerable.Repeat("“I don’t like the way people judge me all the time.”", 5),
+            Enumerable.Repeat("“I am the smartest, wisest, strongest, fastest, and most beautiful person I know.”", 15),
+            Enumerable.Repeat("“I am convinced that powerful enemies are hunting me, and their agents are everywhere I go. I am sure they’re watching me all the time.”", 10),
+            Enumerable.Repeat("“There’s only one person I can trust. And only I can see this special friend.”", 5),
+            Enumerable.Repeat("“I can’t take anything seriously. The more serious the situation, the funnier I find it.”", 10),
+            Enumerable.Repeat("“I’ve discovered that I really like killing people.”", 5),
+        }.SelectMany(e => e).ToArray();
     }
 }
