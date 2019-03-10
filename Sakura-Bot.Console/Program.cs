@@ -24,14 +24,35 @@ namespace Sakura_Bot
 
         protected override async Task UserJoined(SocketGuildUser user)
         {
-            var mods = user.Guild.Roles.Single(r => r.Name == "Moderators");
-            var general = user.Guild.TextChannels.FirstOrDefault(c => c.Name == "welcome");
+            var welcome = user.Guild.TextChannels.FirstOrDefault(c => c.Name == "welcome");
 
-            await general.SendMessageAsync(string.Join(Environment.NewLine,
+            if (welcome == null) return;
+
+            await welcome.SendMessageAsync(GetUserJoinedMessage(user));
+        }
+
+        private static string GetUserJoinedMessage(SocketGuildUser user)
+        {
+            var mods = user.Guild.Roles.Single(r => r.Name == "qt3.14 Assistant Mod");
+
+            return string.Join(Environment.NewLine,
                 $"Welcome {MentionUser(user.Id)} to StickerHub!",
-                $"Be sure to ping the {MentionRole(mods.Id)} to pick your role!",
-                "(Some verification may be required.)"
-            ));
+                $"Are you a sticker collector or vendor?",
+                $"(Some verification may be required for vendors by a {MentionRole(mods.Id)}.)"
+            );
+        }
+        [Command("test ?join .+", "", "")]
+        public static string TestJoin(Command command)
+        {
+            if (command.Message.Author.ToString() != "Smarshian#4242") return null;
+
+            var channel = command.Message.MentionedChannels.FirstOrDefault();
+
+            if (channel == null) return null;
+
+            var user = channel.Users.Single(u => u.ToString() == command.Message.Author.ToString());
+
+            return GetUserJoinedMessage(user);
         }
 
         protected override async Task UserLeft(SocketGuildUser user)
@@ -60,6 +81,26 @@ namespace Sakura_Bot
             Enumerable.Repeat("Cheer up master!", 48),
             Enumerable.Repeat("Genki desu ka?", 48),
             Enumerable.Repeat("stop crying you piece of shit", 4),
+        }.SelectMany(e => e).ToArray();
+
+        [Command(@"gacha", "gacha", "")]
+        public static string Gacha(Command command) => $"{command.MentionAuthor} **{GachaReplies[Random.Next(GachaReplies.Length)]}!**";
+        private static readonly string[] GachaReplies = new List<IEnumerable<string>>
+        {
+            Enumerable.Repeat("Merlin", 100),
+            Enumerable.Repeat("Nitocris", 100),
+            Enumerable.Repeat("Jeanne", 100),
+            Enumerable.Repeat("Jeanne Alter", 100),
+            Enumerable.Repeat("Semiramis", 100),
+            Enumerable.Repeat("Scathach", 100),
+            Enumerable.Repeat("Frankensetein", 100),
+            Enumerable.Repeat("Musashi", 42),
+            Enumerable.Repeat("Gilgamesh", 42),
+            Enumerable.Repeat("Artoria Alter", 42),
+            Enumerable.Repeat("Astolfo", 42),
+            Enumerable.Repeat("Tamamo no mae", 42),
+            Enumerable.Repeat("Scathach (beach)", 42),
+            Enumerable.Repeat("Kiyohime", 42),
         }.SelectMany(e => e).ToArray();
 
         [Command(@"badda\s*", "badda", "")]

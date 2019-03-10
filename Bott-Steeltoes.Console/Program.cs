@@ -167,7 +167,7 @@ namespace Bott_Steeltoes.Console
         };
 
         [Command(
-            pattern: "reincarnate", hint: "reincarnate", 
+            pattern: "reincarnate", hint: "reincarnate",
             description: "Roll a random race (and subrace, where applicable) from Marcus' reincarnate table."
         )]
         public static string Reincarnate(Command command)
@@ -175,15 +175,25 @@ namespace Bott_Steeltoes.Console
             var roll = Random.Next(Races.Length);
             var race = Races[roll];
 
-            string subrace = null;
-            if (Subraces.TryGetValue(race, out var subraces))
+            var current = race;
+            var resultSubraces = new List<string>();
+            while (Subraces.TryGetValue(current, out var subraces))
             {
-                subrace = subraces[Random.Next(subraces.Length)];
+                resultSubraces.Add(current = subraces[Random.Next(subraces.Length)]);
             }
 
-            return $"Your New Race (**{roll}**): {race}{(subrace != null ? $" ({subrace})" : "")}";
+            var abilityRolls = Enumerable.Range(0, 6).Select(_ => Enumerable.Range(0, 4)
+                .Select(i => Random.Next(6) + 1).OrderBy(i => i).Skip(1).Sum()
+            ).ToList();
+
+            //(subrace != null ? $" (**{subrace}**)" : "")
+            return string.Join(NewLine,
+                command.MentionAuthor,
+                $"Your New Race (**{roll}**): **{race}**{resultSubraces.Aggregate("", (s, subrace) => $"{s} (**{subrace}**")}{new string(')', resultSubraces.Count)}",
+                $"Ability Score Rolls: {string.Join(", ", abilityRolls.Select(s => $"**{s}**"))} (Sum: **{abilityRolls.Sum()}**)"
+            );
         }
-        private static readonly string[] Races = 
+        private static readonly string[] Races =
         {
             "Animated Armor",
             "Gargoyle",
@@ -310,6 +320,24 @@ namespace Bott_Steeltoes.Console
             { "Tiefling", new [] { "Hellfire", "Infernal", "Red", "Winged" } },
             { "Tortle", new [] { "Desert", "Forest", "Razorback", "Softshell" } },
             { "Warforged", new [] { "Brass", "Bronze", "Gold", "Platinum", "Silver", "Stone" } },
+            //Lycanthropes:
+            { "Weretiger",     new[]{ "Dwarf", "Elf", "Gnome", "Halfling", "Half-Dwarf", "Half-Elf", "Half-Orc", "Human", "Illumian", "Mongrelfolk", "Orc", "Vryloka", "Yuan-Ti Pureblood" } },
+            { "Werewolf",      new[]{ "Dwarf", "Elf", "Gnome", "Halfling", "Half-Dwarf", "Half-Elf", "Half-Orc", "Human", "Illumian", "Mongrelfolk", "Orc", "Vryloka", "Yuan-Ti Pureblood" } },
+            { "Werecrocodile", new[]{ "Dwarf", "Elf", "Gnome", "Halfling", "Half-Dwarf", "Half-Elf", "Half-Orc", "Human", "Illumian", "Mongrelfolk", "Orc", "Vryloka", "Yuan-Ti Pureblood" } },
+            { "Werebat",       new[]{ "Dwarf", "Elf", "Gnome", "Halfling", "Half-Dwarf", "Half-Elf", "Half-Orc", "Human", "Illumian", "Mongrelfolk", "Orc", "Vryloka", "Yuan-Ti Pureblood" } },
+            { "Werebear",      new[]{ "Dwarf", "Elf", "Gnome", "Halfling", "Half-Dwarf", "Half-Elf", "Half-Orc", "Human", "Illumian", "Mongrelfolk", "Orc", "Vryloka", "Yuan-Ti Pureblood" } },
+            { "Wereboar",      new[]{ "Dwarf", "Elf", "Gnome", "Halfling", "Half-Dwarf", "Half-Elf", "Half-Orc", "Human", "Illumian", "Mongrelfolk", "Orc", "Vryloka", "Yuan-Ti Pureblood" } },
+            { "Wererat",       new[]{ "Dwarf", "Elf", "Gnome", "Halfling", "Half-Dwarf", "Half-Elf", "Half-Orc", "Human", "Illumian", "Mongrelfolk", "Orc", "Vryloka", "Yuan-Ti Pureblood" } },
+            //Undead:
+            { "Ghost",     new[]{ "Dwarf", "Elf", "Gnome", "Halfling", "Half-Dwarf", "Half-Elf", "Half-Orc", "Human", "Illumian", "Mongrelfolk", "Orc", "Vryloka", "Yuan-Ti Pureblood" } },
+            { "Specter",   new[]{ "Dwarf", "Elf", "Gnome", "Halfling", "Half-Dwarf", "Half-Elf", "Half-Orc", "Human", "Illumian", "Mongrelfolk", "Orc", "Vryloka", "Yuan-Ti Pureblood" } },
+            { "Ghoul",     new[]{ "Dwarf", "Elf", "Gnome", "Halfling", "Half-Dwarf", "Half-Elf", "Half-Orc", "Human", "Illumian", "Mongrelfolk", "Orc", "Vryloka", "Yuan-Ti Pureblood" } },
+            { "Mummy",     new[]{ "Dwarf", "Elf", "Gnome", "Halfling", "Half-Dwarf", "Half-Elf", "Half-Orc", "Human", "Illumian", "Mongrelfolk", "Orc", "Vryloka", "Yuan-Ti Pureblood" } },
+            { "Revenant",  new[]{ "Dwarf", "Elf", "Gnome", "Halfling", "Half-Dwarf", "Half-Elf", "Half-Orc", "Human", "Illumian", "Mongrelfolk", "Orc", "Vryloka", "Yuan-Ti Pureblood" } },
+            { "Scarecrow", new[]{ "Dwarf", "Elf", "Gnome", "Halfling", "Half-Dwarf", "Half-Elf", "Half-Orc", "Human", "Illumian", "Mongrelfolk", "Orc", "Vryloka", "Yuan-Ti Pureblood" } },
+            { "Skeleton",  new[]{ "Dwarf", "Elf", "Gnome", "Halfling", "Half-Dwarf", "Half-Elf", "Half-Orc", "Human", "Illumian", "Mongrelfolk", "Orc", "Vryloka", "Yuan-Ti Pureblood" } },
+            { "Wight",     new[]{ "Dwarf", "Elf", "Gnome", "Halfling", "Half-Dwarf", "Half-Elf", "Half-Orc", "Human", "Illumian", "Mongrelfolk", "Orc", "Vryloka", "Yuan-Ti Pureblood" } },
+            { "Zombie",    new[]{ "Dwarf", "Elf", "Gnome", "Halfling", "Half-Dwarf", "Half-Elf", "Half-Orc", "Human", "Illumian", "Mongrelfolk", "Orc", "Vryloka", "Yuan-Ti Pureblood" } },
         };
 
         [Command(
