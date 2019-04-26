@@ -28,31 +28,25 @@ namespace Sakura_Bot
 
             if (welcome == null) return;
 
-            await welcome.SendMessageAsync(GetUserJoinedMessage(user));
+            await welcome.SendMessageAsync(GetUserJoinedMessage(user.Id));
         }
 
-        private static string GetUserJoinedMessage(SocketGuildUser user)
+        private static string GetUserJoinedMessage(ulong userId)
         {
-            var mods = user.Guild.Roles.Single(r => r.Name == "qt3.14 Assistant Mod");
-
             return string.Join(Environment.NewLine,
-                $"Welcome {MentionUser(user.Id)} to StickerHub!",
+                $"Welcome {MentionUser(userId)} to StickerHub!",
                 $"Are you a sticker collector or vendor?",
-                $"(Some verification may be required for vendors by a {MentionRole(mods.Id)}.)"
+                $"(Some verification may be required for vendors.)"
             );
         }
-        [Command("test ?join .+", "", "")]
+        [Command("test ?join", "", "")]
         public static string TestJoin(Command command)
         {
-            if (command.Message.Author.ToString() != "Smarshian#4242") return null;
+            if (command.Message.Author.ToString() == "Smarshian#4242")
+                return GetUserJoinedMessage(command.Message.Author.Id);
 
-            var channel = command.Message.MentionedChannels.FirstOrDefault();
+            return null;
 
-            if (channel == null) return null;
-
-            var user = channel.Users.Single(u => u.ToString() == command.Message.Author.ToString());
-
-            return GetUserJoinedMessage(user);
         }
 
         protected override async Task UserLeft(SocketGuildUser user)
