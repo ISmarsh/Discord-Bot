@@ -1,6 +1,6 @@
-﻿using System;
+﻿using JetBrains.Annotations;
+using System;
 using System.Text.RegularExpressions;
-using JetBrains.Annotations;
 using static System.Text.RegularExpressions.RegexOptions;
 
 namespace Discord_Bot

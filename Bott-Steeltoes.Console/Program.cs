@@ -1,9 +1,9 @@
+using Discord_Bot;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Discord_Bot;
 using static System.Environment;
 
 namespace Bott_Steeltoes.Console

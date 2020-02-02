@@ -1,15 +1,15 @@
-﻿using System;
+﻿using Discord;
+using Discord.WebSocket;
+using Microsoft.Extensions.Configuration;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Configuration;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Discord;
-using Discord.WebSocket;
-using static System.Text.RegularExpressions.RegexOptions;
 using static Discord.MentionUtils;
+using static System.Text.RegularExpressions.RegexOptions;
 
 namespace Discord_Bot
 {
@@ -19,6 +19,7 @@ namespace Discord_Bot
         protected static readonly ReadOnlyCollection<TimeZoneInfo> SystemTimeZones = TimeZoneInfo.GetSystemTimeZones();
         protected static readonly Random Random = new Random();
 
+        protected readonly IConfiguration Configuration;
         protected static string Prefix;
         private Regex PrefixRegex => new Regex($"^{Prefix} ?");
 
@@ -28,6 +29,11 @@ namespace Discord_Bot
         protected Base(string prefix)
         {
             Prefix = prefix;
+
+            //A bit of a hack but it works. Might do a major refactor later to set up some DI.
+            var builder = new ConfigurationBuilder();
+            builder.AddUserSecrets(Assembly.GetCallingAssembly());
+            Configuration = builder.Build();
 
             var type = GetType();
             var types = new List<Type>();
@@ -80,7 +86,7 @@ namespace Discord_Bot
             Client.UserJoined += UserJoined;
             Client.UserLeft += UserLeft;
 
-            await Client.LoginAsync(TokenType.Bot, ConfigurationManager.AppSettings["Token"]);
+            await Client.LoginAsync(TokenType.Bot, Configuration["Discord:Token"]);
             await Client.StartAsync();
 
             await Task.Delay(-1);

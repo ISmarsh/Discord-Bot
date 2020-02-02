@@ -1,6 +1,6 @@
-﻿using System.Text.RegularExpressions;
-using Discord;
+﻿using Discord;
 using Discord.WebSocket;
+using System.Text.RegularExpressions;
 
 namespace Discord_Bot
 {

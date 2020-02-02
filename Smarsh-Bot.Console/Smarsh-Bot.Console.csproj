@@ -1,31 +1,18 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
-    <TargetFramework>net472</TargetFramework>
     <OutputType>Exe</OutputType>
-    <RootNamespace>Smarsh_Bot</RootNamespace>
-    <AssemblyName>Smarsh-Bot</AssemblyName>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <RootNamespace>Smarsh_Bot.Console</RootNamespace>
+    <UserSecretsId>643e6603-adcb-43ff-8b90-6516704194a2</UserSecretsId>
   </PropertyGroup>
+
   <ItemGroup>
-    <Folder Include="Properties\" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="3.1.1" />
   </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\Discord-Bot.Core\Discord-Bot.Core.csproj" />
   </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="Discord.Net" Version="2.0.0" />
-    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces">
-      <Version>1.1.0</Version>
-    </PackageReference>
-    <PackageReference Include="System.Interactive.Async" Version="3.2.0" />
-    <PackageReference Include="System.Linq.Async">
-      <Version>4.0.0</Version>
-    </PackageReference>
-    <PackageReference Include="System.Runtime.CompilerServices.Unsafe">
-      <Version>4.7.0</Version>
-    </PackageReference>
-    <PackageReference Include="System.Threading.Tasks.Extensions">
-      <Version>4.5.3</Version>
-    </PackageReference>
-  </ItemGroup>
+
 </Project>
