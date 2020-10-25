@@ -8,7 +8,7 @@ namespace Smarsh_Bot
     /// </summary>
     public class Program : Discord_Bot.Base
     {
-        public Program() : base(prefix: ">") { }
+        public Program() : base(prefix: ";") { }
 
         public static void Main(string[] args) => Task.WaitAll(new Program().RunAsync());
     }

@@ -14,11 +14,11 @@ namespace Bott_Steeltoes.Console
     /// </summary>
     class Program : Discord_Bot.Base
     {
-        public Program() : base(prefix: ">") { }
+        public Program() : base(prefix: ";") { }
 
         public static void Main(string[] args) => Task.WaitAll(new Program().RunAsync());
 
-        [Command("wild ?magic", "wild magic", "Roll on the Sorcerer's Wild Magic Table.")]
+        [Command("wild ?magic|wm", "wild magic|wm", "Roll on the Sorcerer's Wild Magic Table.")]
         public static string WildMagic(Command command)
         {
             var roll = Random.Next(WildMagicTable.Length);
@@ -341,7 +341,7 @@ namespace Bott_Steeltoes.Console
         };
 
         [Command(
-            "madness( (?<type>short(-term)?|long(-term)?|indefinite|cure))?", "madness (short|long|indefinite|cure)", 
+            "mad(ness)?( (?<type>short(-term)?|long(-term)?|indefinite|cure))?", "mad(ness)? (short|long|indefinite|cure)", 
             "Roll on one of the Madness tables (from the DMG), or learn how madness can be cured."
         )]
         public static string Madness(Command command)

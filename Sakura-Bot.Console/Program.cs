@@ -107,9 +107,9 @@ namespace Sakura_Bot
         public static string BaddaBoom(Command command) => $"{command.MentionAuthor} do it in the right order you klutz";
 
         [Command("honk!?", "honk", "")]
-        public static string Honk(Command command) => $"{command.MentionAuthor} HEY IM SKATIN' OVA' HERE!";
+        public static string Honk(Command command) => $"{command.MentionAuthor} HEY IM WALKIN' OVA' HERE!";
 
         [Command("source", "source", "The source for the profile picture.")]
-        public static string Source(Command command) => $"{command.MentionAuthor} https://www.pixiv.net/member_illust.php?mode=medium&illust_id=68594526";
+        public static string Source(Command command) => $"{command.MentionAuthor} https://www.pixiv.net/artworks/79053274";
     }
 }
