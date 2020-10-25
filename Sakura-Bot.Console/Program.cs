@@ -1,7 +1,6 @@
 ﻿using Discord.WebSocket;
 using Discord_Bot;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using static Discord.MentionUtils;
@@ -59,45 +58,24 @@ namespace Sakura_Bot
     }
 
     protected override string NotFoundMessage(SocketMessage message) =>
-      string.Format(NotFoundMessages[Random.Next(NotFoundMessages.Length)], MentionUser(message.Author.Id));
-    private static readonly string[] NotFoundMessages = new List<IEnumerable<string>>
-    {
-      Enumerable.Repeat("Could you repeat that, {0}?", 32),
-      Enumerable.Repeat("I ask of you, are you my master?", 32),
-      Enumerable.Repeat("Go home goshujin-sama, you're drunk", 32),
-      Enumerable.Repeat("Never show your stupid self in public, {0}.", 4)
-    }.SelectMany(e => e).ToArray();
+      string.Format(NotFoundMessages.Roll(), MentionUser(message.Author.Id));
+    private static readonly Table<string> NotFoundMessages = new Table<string>
+    (
+      (01..08, "Could you repeat that, {0}?"),
+      (09..16, "I ask of you, are you my master?"),
+      (17..24, "Go home goshujin-sama, you're drunk"),
+      (25..25, "Never show your stupid self in public, {0}.")
+    );
 
     //NOTE: this only makes sense when the prefix is ';'
     [Command(@"[-_];", "", "")]
-    public Output Crying(Input input) => new Output(CryingReplies[Random.Next(CryingReplies.Length)]);
-    private static readonly string[] CryingReplies = new List<IEnumerable<string>>
-    {
-      Enumerable.Repeat("Cheer up master!", 48),
-      Enumerable.Repeat("Genki desu ka?", 48),
-      Enumerable.Repeat("stop crying you piece of shit", 4),
-    }.SelectMany(e => e).ToArray();
-
-    [Command(@"gacha", "gacha", "")]
-    public Output Gacha(Input input) => 
-      new Output($"{input.MentionAuthor} **{GachaReplies[Random.Next(GachaReplies.Length)]}!**");
-    private static readonly string[] GachaReplies = new List<IEnumerable<string>>
-    {
-      Enumerable.Repeat("Merlin", 100),
-      Enumerable.Repeat("Nitocris", 100),
-      Enumerable.Repeat("Jeanne", 100),
-      Enumerable.Repeat("Jeanne Alter", 100),
-      Enumerable.Repeat("Semiramis", 100),
-      Enumerable.Repeat("Scathach", 100),
-      Enumerable.Repeat("Frankensetein", 100),
-      Enumerable.Repeat("Musashi", 42),
-      Enumerable.Repeat("Gilgamesh", 42),
-      Enumerable.Repeat("Artoria Alter", 42),
-      Enumerable.Repeat("Astolfo", 42),
-      Enumerable.Repeat("Tamamo no mae", 42),
-      Enumerable.Repeat("Scathach (beach)", 42),
-      Enumerable.Repeat("Kiyohime", 42),
-    }.SelectMany(e => e).ToArray();
+    public Output Crying(Input input) => new Output(CryingReplies.Roll());
+    private static readonly Table<string> CryingReplies = new Table<string>
+    (
+      (01..12, "Cheer up master!"),
+      (13..24, "Genki desu ka?"),
+      (25..25, "stop crying you piece of shit")
+    );
 
     [Command(@"badda\s*", "badda", "")]
     public Output Badda(Input input) => new Output($"{input.MentionAuthor} badda WHAT");
