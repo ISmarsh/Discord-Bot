@@ -1,18 +1,19 @@
-<Project Sdk="Microsoft.NET.Sdk">
-
+<Project Sdk="Microsoft.NET.Sdk;Microsoft.NET.Sdk.Publish">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <RootNamespace>Bott_Steeltoes.Console</RootNamespace>
     <UserSecretsId>c95db21d-ae19-42f9-8fef-f466ebafd614</UserSecretsId>
   </PropertyGroup>
-
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="3.1.1" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="5.0.0" />
   </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\Discord-Bot.Core\Discord-Bot.Core.csproj" />
   </ItemGroup>
-
+  <ItemGroup>
+    <None Update="Settings.job">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>

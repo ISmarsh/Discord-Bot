@@ -1,18 +1,14 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
+﻿<Project Sdk="Microsoft.NET.Sdk;Microsoft.NET.Sdk.Publish">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <RootNamespace>Smarsh_Bot.Console</RootNamespace>
     <UserSecretsId>643e6603-adcb-43ff-8b90-6516704194a2</UserSecretsId>
   </PropertyGroup>
-
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="3.1.1" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="5.0.0" />
   </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\Discord-Bot.Core\Discord-Bot.Core.csproj" />
   </ItemGroup>
-
 </Project>
