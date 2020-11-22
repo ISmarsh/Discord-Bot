@@ -21,7 +21,7 @@ namespace Bott_Steeltoes.Console
     public static void Main(string[] args) => Task.WaitAll(new Program().RunAsync());
 
     [Command("wild ?magic|wm", "wild magic|wm", "Roll on the Sorcerer's Wild Magic Table.")]
-    public string WildMagic(Command command)
+    public Output WildMagic(Input input)
     {
       var roll = Random.Next(WildMagicTable.Length);
       var result = WildMagicTable[roll];
@@ -56,8 +56,8 @@ namespace Bott_Steeltoes.Console
         return $"**{value}**";
       });
 
-      return string.Join(NewLine,
-        $"{command.MentionAuthor} You rolled a **{roll + 1}** for Wild Magic!",
+      return new Output(
+        $"{input.MentionAuthor} You rolled a **{roll + 1}** for Wild Magic!",
         $"Effect: {result}" + (effectRoll.HasValue ? NewLine + $"Effect Roll: **{effectRoll}**" : "")
       );
     }
@@ -172,25 +172,27 @@ namespace Bott_Steeltoes.Console
       pattern: "reincarnate", hint: "reincarnate",
       description: "Roll a random race (and subrace, where applicable) from Marcus' reincarnate table."
     )]
-    public string Reincarnate(Command command)
+    public Output Reincarnate(Input input)
     {
       var roll = Random.Next(Races.Length);
       var race = Races[roll];
 
-      var current = race;
-      var resultSubraces = new List<string>();
-      while (Subraces.TryGetValue(current, out var subraces))
+      var currentRace = race;
+      var subracesList = new List<string>();
+      while (Subraces.TryGetValue(currentRace, out var currentSubraces))
       {
-        resultSubraces.Add(current = subraces[Random.Next(subraces.Length)]);
+        subracesList.Add(currentRace = currentSubraces[Random.Next(currentSubraces.Length)]);
       }
+      var subracesString =
+        $"{subracesList.Aggregate("", (s, subrace) => $"{s} (**{subrace}**")}{new string(')', subracesList.Count)}";
 
       var abilityRolls = Enumerable.Range(0, 6).Select(_ => Enumerable.Range(0, 4)
         .Select(i => Random.Next(6) + 1).OrderBy(i => i).Skip(1).Sum()
       ).ToList();
 
-      return string.Join(NewLine,
-        command.MentionAuthor,
-        $"Your New Race (**{roll + 1}**): **{race}**{resultSubraces.Aggregate("", (s, subrace) => $"{s} (**{subrace}**")}{new string(')', resultSubraces.Count)}",
+      return new Output(
+        input.MentionAuthor,
+        $"Your New Race (**{roll + 1}**): **{race}**{subracesString}",
         $"Ability Score Rolls: {string.Join(", ", abilityRolls.Select(s => $"**{s}**"))} (Sum: **{abilityRolls.Sum()}**)"
       );
     }
@@ -297,6 +299,11 @@ namespace Bott_Steeltoes.Console
       "Cyclops",
       "Ooze-Kin",
     };
+    private static readonly string[] HumanoidRaces =
+    {
+      "Dwarf", "Elf", "Gnome", "Halfling", "Half-Dwarf", "Half-Elf", "Half-Orc", 
+      "Human", "Illumian", "Mongrelfolk", "Orc", "Vryloka", "Yuan-Ti Pureblood"
+    };
     private static readonly Dictionary<string, string[]> Subraces = new Dictionary<string, string[]>
     {
       { "Aasimar",         new [] { "Fairy", "Fallen", "Far Traveler", "Protector", "Raven Queen", "Scourge" } },
@@ -323,34 +330,34 @@ namespace Bott_Steeltoes.Console
       { "Tortle",          new [] { "Desert", "Ocean", "Razorback", "Softshell" } },
       { "Warforged",       new [] { "Brass", "Bronze", "Gold", "Platinum", "Silver", "Stone" } },
       //Lycanthropes:
-      { "Werebat",         new [] { "Dwarf", "Elf", "Gnome", "Halfling", "Half-Dwarf", "Half-Elf", "Half-Orc", "Human", "Illumian", "Mongrelfolk", "Orc", "Vryloka", "Yuan-Ti Pureblood" } },
-      { "Werebear",        new [] { "Dwarf", "Elf", "Gnome", "Halfling", "Half-Dwarf", "Half-Elf", "Half-Orc", "Human", "Illumian", "Mongrelfolk", "Orc", "Vryloka", "Yuan-Ti Pureblood" } },
-      { "Wereboar",        new [] { "Dwarf", "Elf", "Gnome", "Halfling", "Half-Dwarf", "Half-Elf", "Half-Orc", "Human", "Illumian", "Mongrelfolk", "Orc", "Vryloka", "Yuan-Ti Pureblood" } },
-      { "Werecrocodile",   new [] { "Dwarf", "Elf", "Gnome", "Halfling", "Half-Dwarf", "Half-Elf", "Half-Orc", "Human", "Illumian", "Mongrelfolk", "Orc", "Vryloka", "Yuan-Ti Pureblood" } },
-      { "Werehyena",       new [] { "Dwarf", "Elf", "Gnome", "Halfling", "Half-Dwarf", "Half-Elf", "Half-Orc", "Human", "Illumian", "Mongrelfolk", "Orc", "Vryloka", "Yuan-Ti Pureblood" } },
-      { "Wererat",         new [] { "Dwarf", "Elf", "Gnome", "Halfling", "Half-Dwarf", "Half-Elf", "Half-Orc", "Human", "Illumian", "Mongrelfolk", "Orc", "Vryloka", "Yuan-Ti Pureblood" } },
-      { "Wereshark",       new [] { "Dwarf", "Elf", "Gnome", "Halfling", "Half-Dwarf", "Half-Elf", "Half-Orc", "Human", "Illumian", "Mongrelfolk", "Orc", "Vryloka", "Yuan-Ti Pureblood" } },
-      { "Weretiger",       new [] { "Dwarf", "Elf", "Gnome", "Halfling", "Half-Dwarf", "Half-Elf", "Half-Orc", "Human", "Illumian", "Mongrelfolk", "Orc", "Vryloka", "Yuan-Ti Pureblood" } },
-      { "Werewolf",        new [] { "Dwarf", "Elf", "Gnome", "Halfling", "Half-Dwarf", "Half-Elf", "Half-Orc", "Human", "Illumian", "Mongrelfolk", "Orc", "Vryloka", "Yuan-Ti Pureblood" } },
+      { "Werebat",         HumanoidRaces },
+      { "Werebear",        HumanoidRaces },
+      { "Wereboar",        HumanoidRaces },
+      { "Werecrocodile",   HumanoidRaces },
+      { "Werehyena",       HumanoidRaces },
+      { "Wererat",         HumanoidRaces },
+      { "Wereshark",       HumanoidRaces },
+      { "Weretiger",       HumanoidRaces },
+      { "Werewolf",        HumanoidRaces },
       //Genasi
-      { "Air",             new [] { "Dwarf", "Elf", "Gnome", "Halfling", "Half-Dwarf", "Half-Elf", "Half-Orc", "Human", "Illumian", "Mongrelfolk", "Orc", "Vryloka", "Yuan-Ti Pureblood" } },
-      { "Celestial",       new [] { "Dwarf", "Elf", "Gnome", "Halfling", "Half-Dwarf", "Half-Elf", "Half-Orc", "Human", "Illumian", "Mongrelfolk", "Orc", "Vryloka", "Yuan-Ti Pureblood" } },
-      { "Earth",           new [] { "Dwarf", "Elf", "Gnome", "Halfling", "Half-Dwarf", "Half-Elf", "Half-Orc", "Human", "Illumian", "Mongrelfolk", "Orc", "Vryloka", "Yuan-Ti Pureblood" } },
-      { "Eldritch",        new [] { "Dwarf", "Elf", "Gnome", "Halfling", "Half-Dwarf", "Half-Elf", "Half-Orc", "Human", "Illumian", "Mongrelfolk", "Orc", "Vryloka", "Yuan-Ti Pureblood" } },
-      { "Fire",            new [] { "Dwarf", "Elf", "Gnome", "Halfling", "Half-Dwarf", "Half-Elf", "Half-Orc", "Human", "Illumian", "Mongrelfolk", "Orc", "Vryloka", "Yuan-Ti Pureblood" } },
-      { "Water",           new [] { "Dwarf", "Elf", "Gnome", "Halfling", "Half-Dwarf", "Half-Elf", "Half-Orc", "Human", "Illumian", "Mongrelfolk", "Orc", "Vryloka", "Yuan-Ti Pureblood" } },
+      { "Air",             HumanoidRaces },
+      { "Celestial",       HumanoidRaces },
+      { "Earth",           HumanoidRaces },
+      { "Eldritch",        HumanoidRaces },
+      { "Fire",            HumanoidRaces },
+      { "Water",           HumanoidRaces },
     };
 
     [Command(
       "mad(ness)?( (?<type>short(-term)?|long(-term)?|indefinite|cure))?", "mad(ness)? (short|long|indefinite|cure)",
       "Roll on one of the Madness tables (from the DMG), or learn how madness can be cured."
     )]
-    public string Madness(Command command)
+    public Output Madness(Input input)
     {
       string type;
-      if (command["type"].Success)
+      if (input["type"].Success)
       {
-        type = command["type"].Value;
+        type = input["type"].Value;
       }
       else
       {
@@ -369,8 +376,8 @@ namespace Bott_Steeltoes.Console
         {
           label = "Short-Term";
           duration = $"**{Random.Next(10) + 1}** Minutes";
-          roll = Random.Next(ShortMadnesses.Length);
-          effect = ShortMadnesses[roll];
+          roll = Random.Next(ShortMadness.Length);
+          effect = ShortMadness[roll];
 
           break;
         }
@@ -378,8 +385,8 @@ namespace Bott_Steeltoes.Console
         {
           label = "Long-Term";
           duration = $"**{(Random.Next(10) + 1) * 10}** Hours";
-          roll = Random.Next(LongMadnesses.Length);
-          effect = LongMadnesses[roll];
+          roll = Random.Next(LongMadness.Length);
+          effect = LongMadness[roll];
 
           break;
         }
@@ -387,13 +394,13 @@ namespace Bott_Steeltoes.Console
         {
           label = "Indefinite";
           duration = null;
-          roll = Random.Next(IndefiniteMadnesses.Length);
-          effect = IndefiniteMadnesses[roll];
+          roll = Random.Next(IndefiniteMadness.Length);
+          effect = IndefiniteMadness[roll];
 
           break;
         }
         case "cure":
-          return string.Join(NewLine,
+          return new Output(
            "A *calm emotions* spell can suppress the effects of madness, while a *lesser restoration* spell can rid a character of a short-term or long-term madness.",
            "Depending on the source of the madness, *remove curse* or *dispel evil and good* might also prove effective.",
            "A *greater restoration* spell or more powerful magic is required to rid a character of indefinite madness."
@@ -401,13 +408,13 @@ namespace Bott_Steeltoes.Console
         default: return null;
       }
 
-      return string.Join(NewLine,
-        $"{command.MentionAuthor} You rolled a **{roll + 1}** for {label} Madness!",
+      return new Output(
+        $"{input.MentionAuthor} You rolled a **{roll + 1}** for {label} Madness!",
         $"Effect: {effect}",
         $"Duration: {duration ?? "**FOREVER**"}"
       );
     }
-    private static readonly string[] ShortMadnesses = new List<IEnumerable<string>>
+    private static readonly string[] ShortMadness = new List<IEnumerable<string>>
     {
       Enumerable.Repeat("The character retreats into his or her mind and becomes paralyzed. The effect ends if the character takes any damage.", 20),
       Enumerable.Repeat("The character becomes incapacitated and spends the duration screaming, laughing, or weeping.", 10),
@@ -420,7 +427,7 @@ namespace Bott_Steeltoes.Console
       Enumerable.Repeat("The character is stunned.", 10),
       Enumerable.Repeat("The character falls unconscious.", 10),
     }.SelectMany(e => e).ToArray();
-    private static readonly string[] LongMadnesses = new List<IEnumerable<string>>
+    private static readonly string[] LongMadness = new List<IEnumerable<string>>
     {
       Enumerable.Repeat("The character feels compelled to repeat a specific activity over and over, such as washing hands, touching things, praying, or counting coins.", 10),
       Enumerable.Repeat("The character experiences vivid hallucinations and has disadvantage on ability checks.", 10),
@@ -435,7 +442,7 @@ namespace Bott_Steeltoes.Console
       Enumerable.Repeat("The character loses the ability to speak.", 5),
       Enumerable.Repeat("The character falls unconscious. No amount of jostling or damage can wake the character.", 5),
     }.SelectMany(e => e).ToArray();
-    private static readonly string[] IndefiniteMadnesses = new List<IEnumerable<string>>
+    private static readonly string[] IndefiniteMadness = new List<IEnumerable<string>>
     {
       Enumerable.Repeat("“Being drunk keeps me sane.”", 15),
       Enumerable.Repeat("“I keep whatever I find.”", 10),

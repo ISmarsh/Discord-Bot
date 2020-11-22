@@ -41,10 +41,10 @@ namespace Sakura_Bot
     }
 
     [Command("test ?join", "", "")]
-    public string TestJoin(Command command)
+    public Output TestJoin(Input input)
     {
-      if (command.Message.Author.ToString() == "Smarshian#4242")
-        return GetUserJoinedMessage(command.Message.Author.Id);
+      if (input.Message.Author.ToString() == "Smarshian#4242")
+        return new Output(GetUserJoinedMessage(input.Message.Author.Id));
 
       return null;
     }
@@ -70,8 +70,7 @@ namespace Sakura_Bot
 
     //NOTE: this only makes sense when the prefix is ';'
     [Command(@"[-_];", "", "")]
-    public string Crying(Command command) =>
-      string.Format(CryingReplies[Random.Next(CryingReplies.Length)], command.MentionAuthor);
+    public Output Crying(Input input) => new Output(CryingReplies[Random.Next(CryingReplies.Length)]);
     private static readonly string[] CryingReplies = new List<IEnumerable<string>>
     {
       Enumerable.Repeat("Cheer up master!", 48),
@@ -80,8 +79,9 @@ namespace Sakura_Bot
     }.SelectMany(e => e).ToArray();
 
     [Command(@"gacha", "gacha", "")]
-    public string Gacha(Command command) => $"{command.MentionAuthor} **{GachaReplies[Random.Next(GachaReplies.Length)]}!**";
-    private readonly string[] GachaReplies = new List<IEnumerable<string>>
+    public Output Gacha(Input input) => 
+      new Output($"{input.MentionAuthor} **{GachaReplies[Random.Next(GachaReplies.Length)]}!**");
+    private static readonly string[] GachaReplies = new List<IEnumerable<string>>
     {
       Enumerable.Repeat("Merlin", 100),
       Enumerable.Repeat("Nitocris", 100),
@@ -100,18 +100,18 @@ namespace Sakura_Bot
     }.SelectMany(e => e).ToArray();
 
     [Command(@"badda\s*", "badda", "")]
-    public string Badda(Command command) => $"{command.MentionAuthor} badda WHAT";
+    public Output Badda(Input input) => new Output($"{input.MentionAuthor} badda WHAT");
 
     [Command("badda ?bing!?", "baddabing", "")]
-    public string BaddaBing(Command command) => $"{command.MentionAuthor} badda BOOM!";
+    public Output BaddaBing(Input input) => new Output($"{input.MentionAuthor} badda BOOM!");
 
     [Command("badda ?boom!?", "baddaboom", "")]
-    public string BaddaBoom(Command command) => $"{command.MentionAuthor} do it in the right order you klutz";
+    public Output BaddaBoom(Input input) => new Output($"{input.MentionAuthor} do it in the right order you klutz");
 
     [Command("honk!?", "honk", "")]
-    public string Honk(Command command) => $"{command.MentionAuthor} HEY IM WALKIN' OVA' HERE!";
+    public Output Honk(Input input) => new Output($"{input.MentionAuthor} HEY IM WALKIN' OVA' HERE!");
 
     [Command("source", "source", "The source for the profile picture.")]
-    public string Source(Command command) => $"{command.MentionAuthor} https://www.pixiv.net/artworks/79053274";
+    public Output Source(Input input) => new Output($"{input.MentionAuthor} https://www.pixiv.net/artworks/79053274");
   }
 }

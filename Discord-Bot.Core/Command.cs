@@ -1,22 +1,21 @@
-﻿using Discord;
-using Discord.WebSocket;
+﻿using System;
 using System.Text.RegularExpressions;
 
 namespace Discord_Bot
 {
   public class Command
   {
-    public SocketMessage Message { get; }
-    public Match Match { get; }
-
-    public Command(SocketMessage message, Match match)
+    public Command(CommandAttribute attribute, Func<Input, Output> func)
     {
-      Message = message;
-      Match = match;
+      Pattern = attribute.Pattern;
+      Hint = attribute.Hint;
+      Description = attribute.Description;
+      Func = func;
     }
 
-    public Group this[string name] => Match.Groups[name];
-
-    public string MentionAuthor => MentionUtils.MentionUser(Message.Author.Id);
+    public Regex Pattern { get; }
+    public string Hint { get; }
+    public string Description { get; }
+    public Func<Input, Output> Func { get; }
   }
 }

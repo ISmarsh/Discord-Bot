@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -15,10 +16,13 @@ namespace Discord_Bot
 {
   public abstract class Base
   {
+    private static readonly Type InputType = typeof(Input);
+    private static readonly Type OutputType = typeof(Output);
+
     private readonly string _prefix;
     private readonly Regex _prefixRegex;
     private readonly IConfiguration _configuration;
-    private readonly List<(CommandAttribute Command, Delegate Delegate, Type ReturnType)> _handlers;
+    private readonly List<Command> _commands;
 
     protected Base(string prefix)
     {
@@ -29,22 +33,27 @@ namespace Discord_Bot
         .AddEnvironmentVariables()
         .Build();
 
-      _handlers = GetType().GetMethods().SelectMany(m => m.GetCustomAttributes<CommandAttribute>().Select(c =>
+      _commands = GetType().GetMethods().SelectMany(GetHandlers).ToList();
+    }
+
+    private IEnumerable<Command> GetHandlers(MethodInfo method)
+    {
+      var parameters = method.GetParameters();
+      if (parameters.Length != 1 || parameters[0].ParameterType != InputType) yield break;
+
+      var returnType = method.ReturnParameter?.ParameterType;
+      if (returnType == null || returnType != OutputType) yield break;
+
+      var inputExpression = Expression.Parameter(typeof(Input), "input");
+      var func = Expression.Lambda<Func<Input, Output>>(
+        Expression.Call(Expression.Constant(this), method, inputExpression),
+        inputExpression
+      ).Compile();
+
+      foreach (var attribute in method.GetCustomAttributes<CommandAttribute>())
       {
-        Delegate @delegate;
-        var returnType = m.ReturnParameter.ParameterType;
-
-        if (returnType == typeof(string[]))
-        {
-          @delegate = Delegate.CreateDelegate(typeof(Func<Command, string[]>), this, m);
-        }
-        else
-        {
-          @delegate = Delegate.CreateDelegate(typeof(Func<Command, string>), this, m);
-        }
-
-        return (Command: c, Delegate: @delegate, ReturnType: returnType);
-      })).ToList();
+        yield return new Command(attribute, func);
+      }
     }
 
     protected abstract string Name { get; }
@@ -76,28 +85,16 @@ namespace Discord_Bot
 
       var commandText = message.Content.Substring(prefixMatch.Value.Length).Trim();
 
-      var responses = _handlers.Select(h =>
+      var response = _commands.Select(c =>
       {
-        var match = h.Command.Pattern.Match(commandText);
+        var match = c.Pattern.Match(commandText);
 
         if (match.Success == false) return null;
 
-        var command = new Command(message, match);
+        return c.Func(new Input(message, match))?.ToString();
+      }).FirstOrDefault(s => s != null);
 
-        var messages = h.ReturnType == typeof(string[])
-          ? ((Func<Command, string[]>)h.Delegate)(command)
-          : new[] { ((Func<Command, string>)h.Delegate)(command) };
-
-        return messages
-          .Where(m => string.IsNullOrEmpty(m) == false)
-          .Select(m => h.Command.OutputFixedWidth ? $"```{m}```" : m);
-
-      }).FirstOrDefault(s => s?.Any() == true);
-
-      foreach (var response in responses ?? new[] { NotFoundMessage(message) })
-      {
-        await message.Channel.SendMessageAsync(response);
-      }
+      await message.Channel.SendMessageAsync(response ?? NotFoundMessage(message));
     }
 
     protected virtual Task UserJoined(SocketGuildUser user) => Task.CompletedTask;
@@ -107,35 +104,31 @@ namespace Discord_Bot
         $"I'm afraid I don't understand, {MentionUser(message.Author.Id)}.";
 
     [Command("help", "help", "Display all commands.")]
-    public string Help(Command command) => string.Join(Environment.NewLine, _handlers
-      .Where(x => x.Command.Description.Length > 0)
-      .Select(x => $@"`{_prefix}{x.Command.Hint}` - {x.Command.Description}")
+    public Output Help(Input input) => new Output(_commands
+      .Where(x => x.Description?.Length > 0).Select(x => $@"`{_prefix}{x.Hint}` - {x.Description}")
     );
 
-    [Command("ping!?", "ping", "Test the bot's resposiveness.")]
-    public string Ping(Command command) => $"{command.MentionAuthor} Pong!";
-
-    [Command("pings!?", "", "")]
-    public string[] Pings(Command command) => new[] { Ping(command), Ping(command) };
+    [Command("ping!?", "ping", "Test the bot's responsiveness.")]
+    public Output Ping(Input input) => new Output($"{input.MentionAuthor} Pong!");
 
     [Command("roll(?<num> [1-9]\\d*)?", "roll (#)?", "Roll between 1 and a number, defaulting to 20.")]
-    public string Roll(Command command)
+    public Output Roll(Input input)
     {
-      var num = command["num"].Success ? int.Parse(command["num"].Value) : 20;
+      var num = input["num"].Success ? int.Parse(input["num"].Value) : 20;
 
       var result = Random.Next(num) + 1;
       var display = result.ToString("N0") + (result == 69 ? " (nice)" : "");
 
-      return $"{command.MentionAuthor}, you rolled a {display} out of a possible {num:N0}.";
+      return new Output($"{input.MentionAuthor}, you rolled a {display} out of a possible {num:N0}.");
     }
 
     [Command(
-        "should (I|we|(?<other>\\S+))(?<verb> .*?)?: ?(?<options>.+?(,?( or)? .+?)*)\\??",
-        "should (I|we|...) (verb)?: <1>, ...,( or)? <N>", "Randomly choose one of many options."
+      "should (I|we|(?<other>\\S+))(?<verb> .*?)?: ?(?<options>.+?(,?( or)? .+?)*)\\??",
+      "should (I|we|...) (verb)?: <1>, ...,( or)? <N>", "Randomly choose one of many options."
     )]
-    public string Choose(Command command)
+    public Output Choose(Input input)
     {
-      var optionsMatch = command["options"];
+      var optionsMatch = input["options"];
 
       if (optionsMatch.Success == false) return null;
 
@@ -144,33 +137,32 @@ namespace Discord_Bot
 
       options = options.Except(options.Where(string.IsNullOrWhiteSpace)).ToArray();
 
-      var subject = command["other"].Success ? command["other"].Value : "you";
+      var subject = input["other"].Success ? input["other"].Value : "you";
 
-      var verb = command["verb"].Success ? $"{command["verb"].Value.Trim()} " : "";
+      var verb = input["verb"].Success ? $"{input["verb"].Value.Trim()} " : "";
 
       var choice = options[Random.Next(options.Length)].Trim();
 
-      return $"I think that {subject} should {verb}{choice}.".Replace(" my", " your");
+      return new Output($"I think that {subject} should {verb}{choice}.".Replace(" my", " your"));
     }
 
     #region Time Commands/Utilities
     [Command(
-        "times?((?<offset> (?<c>\\d+) (?<period>months?|days?|hours?|minutes?))+ from now)?( with (?<ex>.+))?",
-        "times?(( (number) (months|days|hours|minutes))+ from now)? (with <1>, ..., <N>)?",
-        "Display time in different time zones.",
-        OutputFixedWidth = true
+      "times?((?<offset> (?<c>\\d+) (?<period>months?|days?|hours?|minutes?))+ from now)?( with (?<ex>.+))?",
+      "times?(( (number) (months|days|hours|minutes))+ from now)? (with <1>, ..., <N>)?",
+      "Display time in different time zones."
     )]
-    public string TimeZones(Command command)
+    public Output TimeZones(Input input)
     {
       var baseTime = DateTime.UtcNow;
-      var offset = command["offset"];
+      var offset = input["offset"];
 
       if (offset.Success)
       {
         for (var i = 0; i < offset.Captures.Count; i++)
         {
-          var c = int.Parse(command["c"].Captures[i].Value);
-          var period = command["period"].Captures[i].Value.ToLower();
+          var c = int.Parse(input["c"].Captures[i].Value);
+          var period = input["period"].Captures[i].Value.ToLower();
 
           if (Regex.Match(period, "months?").Success)
             baseTime = baseTime.AddMonths(c);
@@ -183,36 +175,37 @@ namespace Discord_Bot
         }
       }
 
-      var extraMatch = command["ex"];
+      var extraMatch = input["ex"];
       var extraZones = extraMatch.Success ? extraMatch.Value.Split(',').ToList() : Enumerable.Empty<string>();
       var timeZones = StandardTimeZones.Union(extraZones).Select(s => s.Trim());
 
-      return GetTimes(timeZones, baseTime, displayDate: baseTime > DateTime.UtcNow.AddDays(1));
+      return new Output(GetTimes(timeZones, baseTime)) { FixedWidth = true };
     }
 
     [Command(
-        "what time is it(?<specific> in (?<ex>.+))?", "what time is it( in <1>, ..., <N>)?",
-        "Display the current times either in America or a specific list of time zones.",
-        OutputFixedWidth = true
+      "what time is it(?<specific> in (?<ex>.+))?", "what time is it( in <1>, ..., <N>)?",
+      "Display the current times either in America or a specific list of time zones."
     )]
-    public string WhatTime(Command command)
+    public Output WhatTime(Input input)
     {
       IEnumerable<string> timeZones;
-      if (command["specific"].Success)
+      if (input["specific"].Success)
       {
-        timeZones = command["ex"].Value.Split(',').Select(s => s.Trim()).ToList();
+        timeZones = input["ex"].Value.Split(',').Select(s => s.Trim()).ToList();
       }
       else
       {
         timeZones = StandardTimeZones;
       }
 
-      return GetTimes(timeZones, DateTime.UtcNow);
+      return new Output(GetTimes(timeZones, DateTime.UtcNow)) { FixedWidth = true };
     }
 
-    private string GetTimes(
-        IEnumerable<string> timeZones, DateTime baseTime, bool displayDate = false)
+    private IEnumerable<string> GetTimes(
+        IEnumerable<string> timeZones, DateTime baseTime)
     {
+      var displayDate = baseTime.ToUniversalTime() > DateTime.UtcNow.AddDays(1);
+
       var times = new Dictionary<string, DateTime?>();
 
       foreach (var timeZoneInfo in timeZones.ToDictionary(s => s, GetTimeZoneInfo))
@@ -252,8 +245,9 @@ namespace Discord_Bot
 
       if (displayDate) format = "MM/dd/yy " + format + " (ddd)";
 
-      return string.Join(Environment.NewLine, times.OrderBy(p => p.Value).Select(p =>
-          $"{p.Key.PadRight(max)} : {p.Value?.ToString(format) ?? "Not Found".PadLeft(format.Length)}"));
+      return times.OrderBy(p => p.Value).Select(p =>
+        $"{p.Key.PadRight(max)} : {p.Value?.ToString(format) ?? "Not Found".PadLeft(format.Length)}"
+      );
     }
 
     private TimeZoneInfo GetTimeZoneInfo(string s)
