@@ -1,4 +1,5 @@
 ﻿using Discord;
+using Discord.Net;
 using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
 using System;
@@ -6,6 +7,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Net;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -20,13 +22,15 @@ namespace Discord_Bot
     private static readonly Type OutputType = typeof(Output);
 
     private readonly string _prefix;
-    private readonly Regex _prefixRegex;
+    private readonly Regex _commandRegex;
+    private readonly Regex _reactRegex;
     private readonly IConfiguration _configuration;
     private readonly List<Command> _commands;
 
     protected Base(string prefix)
     {
-      _prefixRegex = new Regex($"^{_prefix = prefix} ?");
+      _commandRegex = new Regex($"^{_prefix = prefix}(?!{prefix}) ?");
+      _reactRegex = new Regex($"(^|\n){prefix}{prefix} (?<reactions>.+?([, ]{{1,2}}.+?)*)$", Multiline);
 
       _configuration = new ConfigurationBuilder()
         .AddUserSecrets(Assembly.GetCallingAssembly())
@@ -79,22 +83,97 @@ namespace Discord_Bot
 
     private async Task MessageReceived(SocketMessage message)
     {
-      var prefixMatch = _prefixRegex.Match(message.Content);
+      var commandMatch = _commandRegex.Match(message.Content);
+      var reactMatch = _reactRegex.Match(message.Content);
 
-      if (prefixMatch.Success == false) return;
-
-      var commandText = message.Content.Substring(prefixMatch.Value.Length).Trim();
-
-      var response = _commands.Select(c =>
+      IMessage responseMessage = null;
+      if (commandMatch.Success)
       {
-        var match = c.Pattern.Match(commandText);
+        var commandText = message.Content;
 
-        if (match.Success == false) return null;
+        if (reactMatch.Success)
+        {
+          commandText = commandText.Substring(0, reactMatch.Index);
+        }
 
-        return c.Func(new Input(message, match))?.ToString();
-      }).FirstOrDefault(s => s != null);
+        commandText = commandText.Substring(commandMatch.Value.Length).Trim();
 
-      await message.Channel.SendMessageAsync(response ?? NotFoundMessage(message));
+        Output output = null;
+        foreach (var command in _commands)
+        {
+          var match = command.Pattern.Match(commandText);
+
+          if (match.Success == false) continue;
+
+          output = command.Func(new Input(message, match));
+
+          if (output != null) break;
+        }
+
+        if (output == null)
+        {
+          await message.Channel.SendMessageAsync(NotFoundMessage(message));
+        }
+        else
+        {
+          if (output.HasMessage)
+          {
+            responseMessage = await message.Channel.SendMessageAsync(output.Message);
+
+            if (output.Reactions?.Length > 0)
+            {
+              await AddReactions(responseMessage, output.Reactions);
+            }
+          }
+
+          if (output.DeleteInput)
+          {
+            try
+            {
+              await message.DeleteAsync();
+            }
+            catch (HttpException e) when (e.HttpCode == HttpStatusCode.Forbidden)
+            {
+              //Whoops, not allowed to do that.
+            }
+            catch (HttpException e) when (e.HttpCode == HttpStatusCode.NotFound)
+            {
+              //Message was probably deleted.
+            }
+          }
+        }
+      }
+      
+      if (reactMatch.Success)
+      {
+        var reactions = reactMatch.Groups["reactions"].Value.Split(new[] {',', ' '}, StringSplitOptions.RemoveEmptyEntries);
+
+        await AddReactions(responseMessage ?? message, reactions);
+      }
+    }
+
+    protected static async Task AddReactions(IMessage message, IEnumerable<string> reactions)
+    {
+      foreach (var reaction in reactions)
+      {
+        try
+        {
+          await message.AddReactionAsync(
+            Emote.TryParse(reaction, out var emote) ? (IEmote) emote : new Emoji(reaction)
+          );
+        }
+        catch (HttpException e) when (e.HttpCode == HttpStatusCode.BadRequest)
+        {
+          //Bad input; just ignore and move on.
+#if DEBUG
+          await message.Channel.SendMessageAsync($"Invalid reaction: {reaction}");
+#endif
+        }
+        catch (HttpException e) when (e.HttpCode == HttpStatusCode.NotFound)
+        {
+          //Message was probably deleted.
+        }
+      }
     }
 
     protected virtual Task UserJoined(SocketGuildUser user) => Task.CompletedTask;
@@ -110,6 +189,23 @@ namespace Discord_Bot
 
     [Command("ping!?", "ping", "Test the bot's responsiveness.")]
     public Output Ping(Input input) => new Output($"{input.MentionAuthor} Pong!");
+
+    [Command("react (?<reactions>.+?([, ]{{1,2}}.+?)*)")]
+    public Output React(Input input)
+    {
+      var reactions = input["reactions"].Value.Split(new[] {',', ' '}, StringSplitOptions.RemoveEmptyEntries);
+
+      var getMessageTask = input.Message.Channel.GetMessagesAsync(input.Message, Direction.Before, 1).FlattenAsync();
+      getMessageTask.Wait();
+      var targetMessage = getMessageTask.Result.SingleOrDefault();
+
+      if (targetMessage != null)
+      {
+        Task.WaitAll(AddReactions(targetMessage, reactions));
+      }
+
+      return new Output { DeleteInput = true };
+    }
 
     [Command("roll(?<num> [1-9]\\d*)?", "roll (#)?", "Roll between 1 and a number, defaulting to 20.")]
     public Output Roll(Input input)
